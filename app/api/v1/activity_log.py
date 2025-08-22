@@ -19,8 +19,3 @@ def get_my_activity_logs(
     from app.crud.activity_log import get_user_activity_logs
     return get_user_activity_logs(db, current_user.id, skip, limit)
 
-
-@router.get("/", response_model=list[ActivityLogResponse])
-def get_logs(db: Session = Depends(get_db), skip: int = 0, limit: int = 100):
-    logs = crud_activity.list_logs(db, skip=skip, limit=limit)
-    return logs

@@ -14,7 +14,3 @@ def create_activity_log(db: Session, activity_log: ActivityLogCreate) -> Activit
 
 def get_user_activity_logs(db: Session, user_id: int, skip: int = 0, limit: int = 100) -> List[ActivityLog]:
     return db.query(ActivityLog).filter(ActivityLog.user_id == user_id).offset(skip).limit(limit).all()
-
-
-def list_logs(db: Session, skip: int = 0, limit: int = 100) -> List[ActivityLog]:
-    return db.query(ActivityLog).offset(skip).limit(limit).all()
