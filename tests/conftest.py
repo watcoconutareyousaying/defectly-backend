@@ -1,65 +1,64 @@
 import sys
 import os
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+# Ensure app is importable
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app
+from app.db.base import Base
 from app.db.session import get_db
-from alembic.config import Config
-from alembic import command
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
-from fastapi.testclient import TestClient
-import pytest
+from app.models.user import User
+from app.core.security import get_password_hash
 
-
-
-TEST_DATABASE_URL = os.getenv(
-    "TEST_DB_URL",
-    "sqlite:///:memory:"
-)
-
-# SQLALCHEMY_DATABASE_URL = "sqlite://./test_db:"
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
-    TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False} if TEST_DATABASE_URL.startswith("sqlite") else {}
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
 )
-
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine
-)
-
-# Base.metadata.create_all(bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture(scope="session", autouse=True)
-def apply_migrations():
-    if TEST_DATABASE_URL.startswith("sqlite"):
-        from app.db.base import Base
-        from app.models import user, otp, activity_log
-        Base.metadata.create_all(bind=engine)
-    else:
-        alembic_cfg = Config("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
-    yield
-    # Optional: clean up
-    if not TEST_DATABASE_URL.startswith("sqlite"):
-        command.downgrade(alembic_cfg, "base")
-
-
-def override_get_db():
+@pytest.fixture(scope="function")
+def test_db():
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
     try:
-        db = TestingSessionLocal()
         yield db
     finally:
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
+@pytest.fixture(scope="function")
+def client(test_db):
+
+    def override_get_db():
+        try:
+            yield test_db
+        finally:
+            test_db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    return TestClient(app)
 
 
-@pytest.fixture(scope="module")
-def client():
-    with TestClient(app) as c:
-        yield c
+@pytest.fixture(scope="function")
+def test_user(test_db):
+    user = User(
+        name="Test User",
+        email="test@example.com",
+        hashed_password=get_password_hash("testpassword"),
+        is_active=True,
+        is_verified=True,
+    )
+    test_db.add(user)
+    test_db.commit()
+    test_db.refresh(user)
+    return user

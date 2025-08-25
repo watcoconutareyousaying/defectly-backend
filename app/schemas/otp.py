@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class OTPCreate(BaseModel):
@@ -16,5 +16,4 @@ class OTPResponse(BaseModel):
     expires_at: datetime
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

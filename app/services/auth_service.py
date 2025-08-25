@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
@@ -26,7 +26,7 @@ async def register_user(db: Session, user_data: UserCreate) -> dict:
 
     # Generate and send OTP
     otp = create_otp(db, user.id)
-    email_sent = await send_otp_email(user.email, otp.otp_code)
+    email_sent = send_otp_email(user.email, otp.otp_code)
 
     if not email_sent:
         raise HTTPException(
@@ -36,7 +36,6 @@ async def register_user(db: Session, user_data: UserCreate) -> dict:
 
     return {
         "message": "User registered successfully. Please check your email for OTP verification.",
-        "user_id": user.id
     }
 
 
@@ -71,7 +70,7 @@ def login_user(db: Session, user_data: UserLogin) -> Token:
         db=db,
         jti=jti,
         user_id=user.id,
-        expires_at=datetime.utcnow() + access_token_expires
+        expires_at=datetime.now(timezone.utc) + access_token_expires
     )
 
     return Token(access_token=access_token, token_type="bearer")
@@ -101,16 +100,22 @@ async def reset_password(db: Session, data: ResetPasswordRequest):
         OTP.user_id == user.id,
         OTP.otp_code == data.otp_code,
         OTP.is_used == False,
-        OTP.expires_at > datetime.utcnow()
+        OTP.expires_at > datetime.now(timezone.utc)
     ).first()
 
     if not otp_valid:
+        db.query(OTP).filter(
+            OTP.user_id == user.id,
+            ((OTP.is_used == True) | (OTP.expires_at <= datetime.now(timezone.utc)))
+        ).delete()
+        db.commit()
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
-    otp_valid.is_used = True
+    db.delete(otp_valid)
 
     user_crud.update_password(db, user, data.new_password)
-    
+    db.commit()
+
     await send_password_reset_success_email(user.email, user.name)
-    
+
     return {"message": "Password reset successfully"}

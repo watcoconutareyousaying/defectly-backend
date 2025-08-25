@@ -5,7 +5,7 @@ from app.schemas.activity_log import ActivityLogCreate
 
 
 def create_activity_log(db: Session, activity_log: ActivityLogCreate) -> ActivityLog:
-    db_log = ActivityLog(**activity_log.dict())
+    db_log = ActivityLog(**activity_log.model_dump())
     db.add(db_log)
     db.commit()
     db.refresh(db_log)

@@ -3,7 +3,7 @@ import string
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from app.models.otp import OTP
 from app.models.user import User
@@ -15,12 +15,11 @@ def generate_otp() -> str:
 
 
 def create_otp(db: Session, user_id: int) -> OTP:
-    # Deactivate previous OTPs
     db.query(OTP).filter(OTP.user_id == user_id,
                          OTP.is_used == False).update({"is_used": True})
 
     otp_code = generate_otp()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)  # OTP expires in 10 minutes
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # OTP expires in 10 minutes
 
     db_otp = OTP(
         user_id=user_id,
@@ -76,7 +75,7 @@ async def verify_otp(db: Session, email: str, otp_code: str) -> bool:
         OTP.user_id == user.id,
         OTP.otp_code == otp_code,
         OTP.is_used == False,
-        OTP.expires_at > datetime.utcnow()
+        OTP.expires_at > datetime.now(timezone.utc)
     ).first()
 
     if otp:

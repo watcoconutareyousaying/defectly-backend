@@ -24,6 +24,7 @@ async def signup(
     db: Session = Depends(get_db)
 ):
     result = await register_user(db, user_data)
+    print("result", result)
 
     # Log signup activity
     log_activity(
@@ -45,7 +46,7 @@ async def verify_otp_endpoint(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    is_verified = verify_otp(db, otp_data.email, otp_data.otp_code)
+    is_verified = await verify_otp(db, otp_data.email, otp_data.otp_code)
 
     if not is_verified:
         raise HTTPException(
