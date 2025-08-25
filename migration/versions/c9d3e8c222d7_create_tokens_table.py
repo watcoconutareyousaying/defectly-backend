@@ -27,11 +27,7 @@ def upgrade() -> None:
         sa.Column('created_at', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('expires_at', sa.TIMESTAMP(timezone=True), nullable=False),
     )
-    op.create_index('ix_tokens_jti', 'tokens', ['jti'], unique=True)
-    op.create_index('ix_tokens_id', 'tokens', ['id'])
 
 
 def downgrade() -> None:
-    op.drop_index('ix_tokens_jti', table_name='tokens')
-    op.drop_index('ix_tokens_id', table_name='tokens')
     op.drop_table('tokens')
