@@ -36,6 +36,7 @@ async def register_user(db: Session, user_data: UserCreate) -> dict:
 
     return {
         "message": "User registered successfully. Please check your email for OTP verification.",
+        "user_id": user.id
     }
 
 
