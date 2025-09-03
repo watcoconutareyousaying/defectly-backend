@@ -44,10 +44,11 @@ def get_plans_for_user(db: Session, user_id: int, include_deleted: bool = False)
 
 def update_plan(db: Session, test_plan: Plan, updates: Dict[str, Any]):
     if "plan_data" in updates and isinstance(updates["plan_data"], dict):
-        existing = test_plan.plan_data or {}
-        existing.update(updates["plan_data"])
-        test_plan.plan_data = existing
-    # allow toggling is_deleted via explicit update (rare)
+        existing = dict(test_plan.plan_data or {})
+        new_data = dict(updates["plan_data"])
+        merged = {**existing, **new_data}
+        test_plan.plan_data = merged
+        
     if "is_deleted" in updates and isinstance(updates["is_deleted"], bool):
         test_plan.is_deleted = updates["is_deleted"]
     db.commit()
