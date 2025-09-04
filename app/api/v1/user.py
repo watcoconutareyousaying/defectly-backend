@@ -24,7 +24,6 @@ async def signup(
     db: Session = Depends(get_db)
 ):
     result = await register_user(db, user_data)
-    print("result", result)
 
     # Log signup activity
     log_activity(

@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.plan import PlanCreate, PlanResponse, PlanUpdate
 from app.services import plan_service
 from app.services.activity_log_service import log_activity
+from app.services.export_service import export_project_plans, export_single_plan
 
 router = APIRouter()
 
@@ -22,10 +23,10 @@ def create_plan_endpoint(
 ):
     # Convert payload to dict and merge all root fields into plan_data
     payload_dict = jsonable_encoder(payload, exclude_unset=True)
-    
+
     # Extract plan_data or initialize empty
     plan_data = payload_dict.get("plan_data", {})
-    
+
     # Merge all other fields from PlanBase (module, phase, etc.) into plan_data
     for key, value in payload_dict.items():
         if key != "plan_data":
@@ -70,6 +71,7 @@ def get_plan_endpoint(
     plan = plan_service.get_plan_by_id(db, plan_id)
     return plan
 
+
 @router.put("/plans/{plan_id}", response_model=PlanResponse)
 def update_plan_endpoint(
     plan_id: int,
@@ -112,6 +114,7 @@ def update_plan_endpoint(
     )
 
     return plan
+
 
 @router.delete("/plans/{plan_id}", response_model=PlanResponse)
 def soft_delete_plan_endpoint(
@@ -161,3 +164,87 @@ def permanent_delete_plan_endpoint(
     )
 
     return result
+
+
+@router.get("/plans/{plan_id}/export")
+def export_single_plan_endpoint(
+    plan_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        response = export_single_plan(db, plan_id, current_user.id)
+
+        log_activity(
+            db=db,
+            user_id=current_user.id,
+            user_name=current_user.name,
+            activity_type="export_plan",
+            description=(
+                f"User '{current_user.name}' (ID: {current_user.id}) exported Plan (ID: {plan_id})."
+            ),
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        return response
+
+    except Exception as e:
+        log_activity(
+            db=db,
+            user_id=current_user.id,
+            user_name=current_user.name,
+            activity_type="export_plan_failed",
+            description=(
+                f"User '{current_user.name}' (ID: {current_user.id}) failed to export Plan (ID: {plan_id}). "
+                f"Error: {str(e)}"
+            ),
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export plan: {str(e)}"
+        )
+
+
+@router.get("/{project_id}/plans/export")
+def export_project_plans_endpoint(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        response = export_project_plans(db, project_id)
+
+        log_activity(
+            db=db,
+            user_id=current_user.id,
+            user_name=current_user.name,
+            activity_type="export_project_plans",
+            description=(
+                f"User '{current_user.name}' (ID: {current_user.id}) exported all plans for Project (ID: {project_id})."
+            ),
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        return response
+
+    except Exception as e:
+        log_activity(
+            db=db,
+            user_id=current_user.id,
+            user_name=current_user.name,
+            activity_type="export_project_plans_failed",
+            description=(
+                f"User '{current_user.name}' (ID: {current_user.id}) failed to export plans for Project (ID: {project_id}). "
+                f"Error: {str(e)}"
+            ),
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export project plans: {str(e)}"
+        )

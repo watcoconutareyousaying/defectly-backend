@@ -5,6 +5,7 @@ from datetime import date
 
 
 class PlanBase(BaseModel):
+    version: Optional[str] = None
     module: Optional[str] = None
     prepared_by: Optional[str] = None
     date: date
@@ -23,6 +24,7 @@ class PlanCreate(PlanBase):
 
 
 class PlanUpdate(BaseModel):
+    version: Optional[str] = None
     module: Optional[str] = None
     prepared_by: Optional[str] = None
     date: Optional[date]
@@ -40,7 +42,6 @@ class PlanResponse(BaseModel):
     id: int
     project_id: int
     created_by: int
-    project_name: Optional[str] = None
     plan_data: Dict[str, Any]
     is_deleted: bool
     deleted_at: Optional[datetime]
