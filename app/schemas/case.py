@@ -6,6 +6,7 @@ from datetime import datetime
 class CaseBase(BaseModel):
     case_id: str
     module: Optional[str] = None
+    title: Optional[str] = None
     description: Optional[str] = None
     precondition: Optional[str] = None
     steps: Optional[str] = None
@@ -22,6 +23,7 @@ class CaseCreate(CaseBase):
 
 class CaseUpdate(BaseModel):
     module: Optional[str] = None
+    title: Optional[str] = None
     description: Optional[str] = None
     precondition: Optional[str] = None
     steps: Optional[str] = None

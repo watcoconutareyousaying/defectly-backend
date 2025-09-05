@@ -1,37 +1,40 @@
 from openpyxl import Workbook
 from openpyxl.styles import Font
-from typing import Dict, List
+from typing import List, Dict
+from app.models.case import Case
 
-FIELD_ORDER = [
-    "test_case_id",
-    "module",
-    "description",
-    "precondition",
-    "test_steps",
-    "test_data",
-    "expected_result",
-    "actual_result",
-    "status",
-    "remarks",
+# Define the header and the corresponding keys in your case_data
+EXPORT_COLUMNS = [
+    ("Test Case ID", "case_id"),
+    ("Module", "module"),
+    ("Title", "title"),  # <- you can map description/title as needed
+    ("Description", "description"),
+    ("Test Steps", "steps"),
+    ("Test Data", "data"),
+    ("Expected Result", "expected_result"),
+    ("Priority", "priority"),   # make sure your schema supports this
+    ("Status", "status"),
+    ("Remarks", "remarks"),
 ]
 
 
-def _write_dict_to_sheet(ws, data: Dict[str, any], field_order: List[str]):
-    ws.cell(row=1, column=1, value="Field")
-    ws.cell(row=1, column=2, value="Value")
-    bold_font = Font(bold=True)
-    ws["A1"].font = bold_font
-    ws["B1"].font = bold_font
-    row = 2
-    for field in field_order:
-        ws.cell(row=row, column=1, value=field.replace("_", " ").capitalize())
-        ws.cell(row=row, column=2, value=data.get(field, ""))
-        row += 1
-
-
-def export_test_case_to_excel(tc_data: Dict[str, any]):
+def export_cases_to_excel(cases: List[Case]):
     wb = Workbook()
-    ws = wb.active
-    ws.title = "TestCase"
-    _write_dict_to_sheet(ws, tc_data, FIELD_ORDER)
+    if wb.active is None:
+        ws = wb.create_sheet(title="TestCases")
+    else:
+        ws = wb.active
+        ws.title = "TestCases"
+
+    # Write header row
+    for col_idx, (header, _) in enumerate(EXPORT_COLUMNS, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = Font(bold=True)
+
+    # Write case rows
+    for row_idx, case in enumerate(cases, start=2):
+        data: Dict = case.case_data or {}
+        for col_idx, (_, field_key) in enumerate(EXPORT_COLUMNS, start=1):
+            ws.cell(row=row_idx, column=col_idx, value=data.get(field_key, ""))
+
     return wb

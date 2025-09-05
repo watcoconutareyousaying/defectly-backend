@@ -149,3 +149,12 @@ def permanent_delete_case_endpoint(
         user_agent=get_user_agent(request)
     )
     return result
+
+
+@router.get("/{project_id}/cases/export")
+def export_cases_endpoint(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return case_service.export_cases_for_project(db, project_id)
