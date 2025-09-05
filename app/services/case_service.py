@@ -1,6 +1,10 @@
+import io
 from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
 from fastapi import HTTPException, status
 from app.crud import case as tc_crud
+from app.services.case_export_service import export_cases_to_excel
+
 
 
 def create_case(db: Session, project_id: int, creator_id: int, payload: dict):
@@ -51,3 +55,21 @@ def permanent_delete_case(db: Session, case_id: int, user_id: int):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
     tc_crud.permanently_delete_case(db, tc)
     return {"message": "Test case permanently deleted"}
+
+
+def export_cases_for_project(db, project_id: int):
+    cases = tc_crud.get_cases_for_project(db, project_id)
+    wb = export_cases_to_excel(cases)
+
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+    
+    project_name = cases[0].project.name if cases[0].project else f"project_{project_id}"
+    safe_project_name = project_name.replace(" ", "_")
+    
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={safe_project_name}-testcases.xlsx"}
+    )
