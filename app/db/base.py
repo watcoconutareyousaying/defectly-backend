@@ -11,3 +11,5 @@ from app.models.activity_log import ActivityLog
 from app.models.project import Project
 from app.models.plan import Plan
 from app.models.case import Case
+from app.models.requirement import Requirement
+from app.models.requirement_case import RequirementCase

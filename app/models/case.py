@@ -23,6 +23,8 @@ class Case(Base):
 
     project = relationship("Project", backref="cases")
     creator = relationship("User", backref="cases")
+    requirements = relationship("RequirementCase", back_populates="case")
+
 
     def soft_delete(self):
         self.is_deleted = True
