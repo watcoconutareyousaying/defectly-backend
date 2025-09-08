@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.crud import requirement as req_crud
@@ -13,7 +14,11 @@ def list_requirements(db: Session):
 
 
 def get_requirement(db: Session, requirement_id: int, include_deleted: bool = False):
-    return req_crud.get_requirement(db, requirement_id, include_deleted)
+    req = req_crud.get_requirement(db, requirement_id, include_deleted)
+    if not req:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Requirement not found")
+    return req
 
 
 def link_case_to_requirement(db: Session, requirement_id: int, case_id: int):
@@ -32,23 +37,24 @@ def soft_delete_requirement(db: Session, requirement_id: int):
 
 
 def permanently_delete_requirement(db: Session, requirement_id: int):
-    req = req_crud.get_requirement(db, requirement_id, include_deleted=True)
-    if not req:
-        return None
-    return req_crud.permanently_delete_requirement(db, req)
+    req = get_requirement(db, requirement_id, include_deleted=True)
+    req_crud.permanently_delete_requirement(db, req)
+    return {"message": "Requirement permanently deleted"}
 
 
 def get_traceability_matrix(db: Session) -> List[TraceabilityMatrixRow]:
     requirements = req_crud.list_requirements(db, include_deleted=False)
     matrix = []
+    
     for req in requirements:
         case_ids = []
         statuses = []
         for rc in req.cases:
-            if rc.is_deleted:
+            if not rc.case or rc.case.is_deleted:
                 continue
-            case_ids.append(rc.case.case_data.get("case_id"))
-            statuses.append(rc.case.case_data.get("status"))
+            case_ids.append(rc.case.case_data.get("case_id", "N/A"))
+            statuses.append(rc.case.case_data.get("status", "N/A"))
+            
         matrix.append(
             TraceabilityMatrixRow(
                 requirement_id=req.req_id,
