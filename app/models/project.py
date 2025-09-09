@@ -25,6 +25,7 @@ class Project(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     owner = relationship("User", backref="projects")
+    requirements = relationship("Requirement", back_populates="project")
 
     def soft_delete(self):
         self.is_deleted = True

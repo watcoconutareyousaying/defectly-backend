@@ -4,107 +4,51 @@ from typing import List
 
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.requirement import RequirementCreate, RequirementResponse, TraceabilityMatrixRow, RequirementCaseLinkResponse
-from app.services import requirement_service
+from app.schemas.requirement import RequirementCreate, RequirementResponse, TraceabilityMatrixRow
+from app.services import requirement_service, requirement_export_service
 from app.services.activity_log_service import log_activity
 from app.api.deps import get_current_user, get_client_ip, get_user_agent
+from app.crud import project as project_crud
 
 router = APIRouter()
 
 
-@router.post("/", response_model=RequirementResponse)
+@router.post("/projects/{project_id}/requirements", response_model=RequirementResponse)
 def create_requirement_endpoint(
-    req: RequirementCreate,
+    project_id: int,
+    payload: RequirementCreate,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    requirement = requirement_service.create_requirement(
-        db, req.req_id, req.description)
+    req = requirement_service.create_requirement(
+        db, project_id, payload.req_id, payload.description)
 
     log_activity(
         db=db,
         user_id=current_user.id,
         user_name=current_user.name,
         activity_type="create_requirement",
-        description=f"User '{current_user.name}' (ID: {current_user.id}) created Requirement '{req.req_id}'",
+        description=(
+            f"User '{current_user.name}' (ID: {current_user.id}) created a new Requirement "
+            f"(ID: {req.id}, Req ID: {req.req_id}) for Project ID {project_id}."
+        ),
         ip_address=get_client_ip(request),
         user_agent=get_user_agent(request)
     )
-    return requirement
+    return req
 
 
-@router.get("/", response_model=List[RequirementResponse])
+@router.get("/projects/{project_id}/requirements", response_model=List[RequirementResponse])
 def list_requirements_endpoint(
+    project_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return requirement_service.list_requirements(db)
+    return requirement_service.list_requirements(db, project_id)
 
 
-@router.post("/{requirement_id}/cases/{case_id}")
-def link_case_endpoint(
-    requirement_id: int,
-    case_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    result = requirement_service.link_case_to_requirement(
-        db, requirement_id, case_id)
-
-    log_activity(
-        db=db,
-        user_id=current_user.id,
-        user_name=current_user.name,
-        activity_type="link_case_to_requirement",
-        description=(
-            f"User '{current_user.name}' (ID: {current_user.id}) linked Test Case ID {case_id} "
-            f"to Requirement ID {requirement_id}"
-        ),
-        ip_address=get_client_ip(request),
-        user_agent=get_user_agent(request)
-    )
-
-    return RequirementCaseLinkResponse(
-        requirement_id=requirement_id,
-        case_id=case_id,
-        linked=True
-    )
-
-
-@router.delete("/{requirement_id}/cases/{case_id}")
-def unlink_case_endpoint(
-    requirement_id: int,
-    case_id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    result = requirement_service.unlink_case_from_requirement(
-        db, requirement_id, case_id)
-
-    log_activity(
-        db=db,
-        user_id=current_user.id,
-        user_name=current_user.name,
-        activity_type="unlink_case_from_requirement",
-        description=(
-            f"User '{current_user.name}' (ID: {current_user.id}) unlinked Test Case ID {case_id} "
-            f"from Requirement ID {requirement_id}"
-        ),
-        ip_address=get_client_ip(request),
-        user_agent=get_user_agent(request)
-    )
-    
-    return RequirementCaseLinkResponse(
-        requirement_id=requirement_id,
-        case_id=case_id,
-        linked=False
-    )
-
-
-@router.delete("/{requirement_id}", response_model=RequirementResponse)
+@router.delete("/requirements/{requirement_id}", response_model=RequirementResponse)
 def soft_delete_requirement_endpoint(
     requirement_id: int,
     request: Request,
@@ -130,7 +74,7 @@ def soft_delete_requirement_endpoint(
     return req
 
 
-@router.delete("/{requirement_id}/permanent")
+@router.delete("/requirements/{requirement_id}/permanent")
 def permanent_delete_requirement_endpoint(
     requirement_id: int,
     request: Request,
@@ -157,9 +101,27 @@ def permanent_delete_requirement_endpoint(
     return result
 
 
-@router.get("/traceability-matrix", response_model=List[TraceabilityMatrixRow])
+@router.get("/projects/{project_id}/traceability-matrix", response_model=List[TraceabilityMatrixRow])
 def traceability_matrix_endpoint(
+    project_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return requirement_service.get_traceability_matrix(db)
+    return requirement_service.get_traceability_matrix(db, project_id)
+
+
+@router.get("/projects/{project_id}/traceability-matrix/export")
+def export_traceability_matrix_endpoint(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    matrix_rows = requirement_service.get_traceability_matrix(db, project_id)
+
+    project = project_crud.get_project(db, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    project_name = project.name
+
+    return requirement_export_service.export_traceability_matrix_to_excel(matrix_rows, project_name=project_name)

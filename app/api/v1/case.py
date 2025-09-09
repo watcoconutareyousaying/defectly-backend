@@ -12,9 +12,9 @@ from app.api.deps import get_current_user, get_client_ip, get_user_agent
 router = APIRouter()
 
 
-@router.post("/{project_id}/cases", response_model=CaseResponse)
+@router.post("/requirements/{requirement_id}/cases", response_model=CaseResponse)
 def create_case_endpoint(
-    project_id: int,
+    requirement_id: int,
     payload: CaseCreate,
     request: Request,
     db: Session = Depends(get_db),
@@ -25,7 +25,8 @@ def create_case_endpoint(
     for key, value in payload_dict.items():
         if key != "case_data":
             case_data[key] = value
-    tc = case_service.create_case(db, project_id, current_user.id, case_data)
+    tc = case_service.create_case(
+        db, requirement_id, current_user.id, case_data)
 
     log_activity(
         db=db,
@@ -35,7 +36,7 @@ def create_case_endpoint(
         description=(
             f"User '{current_user.name}' (ID: {current_user.id}) created a new Test Case "
             f"(ID: {tc.id}, Test Case ID: {tc.case_data.get('case_id')}) "
-            f"for Project (ID: {project_id}, Name: {tc.case_data.get('project_name')})."
+            f"for Project (ID: {requirement_id}."
         ),
         ip_address=get_client_ip(request),
         user_agent=get_user_agent(request)
@@ -43,13 +44,13 @@ def create_case_endpoint(
     return tc
 
 
-@router.get("/{project_id}/cases", response_model=List[CaseResponse])
+@router.get("/requirements/{requirement_id}/cases", response_model=List[CaseResponse])
 def list_cases_endpoint(
-    project_id: int,
+    requirement_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return case_service.list_cases_for_project(db, project_id)
+    return case_service.list_cases_for_project(db, requirement_id)
 
 
 @router.get("/cases/{case_id}", response_model=CaseResponse)
@@ -81,7 +82,7 @@ def update_case_endpoint(
 
     tc = case_service.update_case(db, case_id, update_dict, current_user.id)
 
-    changes  = []
+    changes = []
     for field, new_value in case_data.items():
         old_value = old_data.get(field, "(empty)")
         if new_value != old_value:
@@ -94,7 +95,7 @@ def update_case_endpoint(
         activity_type="update_case",
         description=(
             f"User '{current_user.name}' (ID: {current_user.id}) updated Test Case "
-            f"(ID: {tc.id}, Test Case ID: {tc.case_data.get('case_id')}, Project ID: {tc.project_id}); "
+            f"(ID: {tc.id}, Test Case ID: {tc.case_data.get('case_id')}, Requirement ID: {tc.requirement_id}); "
             f"Changes: {', '.join(changes) if changes else 'No changes'}"
         ),
         ip_address=get_client_ip(request),
@@ -119,7 +120,7 @@ def soft_delete_case_endpoint(
         description=(
             f"User '{current_user.name}' (ID: {current_user.id}) soft-deleted Test Case "
             f"(ID: {tc.id}, Test Case ID: {tc.case_data.get('case_id')}, "
-            f"Project ID: {tc.project_id}) at {tc.deleted_at}."
+            f"Requirement ID: {tc.requirement_id}) at {tc.deleted_at}."
         ),
         ip_address=get_client_ip(request),
         user_agent=get_user_agent(request)
@@ -151,10 +152,50 @@ def permanent_delete_case_endpoint(
     return result
 
 
-@router.get("/{project_id}/cases/export")
-def export_cases_endpoint(
-    project_id: int,
+@router.get("/requirements/{requirement_id}/cases/export")
+def export_requirement_cases_endpoint(
+    requirement_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return case_service.export_cases_for_project(db, project_id)
+    response = case_service.export_cases_for_requirement(db, requirement_id)
+    
+    # Log activity
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=current_user.name,
+        activity_type="export_requirement_cases",
+        description=(
+            f"User '{current_user.name}' exported all test cases for Requirement ID: {requirement_id}."
+        ),
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return response
+
+
+@router.get("/projects/{project_id}/cases/export")
+def export_all_cases_endpoint(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    response = case_service.export_cases_for_project(db, project_id)
+    log_activity(
+        db=db,
+        user_id=current_user.id,
+        user_name=current_user.name,
+        activity_type="export_cases",
+        description=(
+            f"User '{current_user.name}' (ID: {current_user.id}) exported all test cases "
+            f"for Project ID: {project_id}."
+        ),
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return response

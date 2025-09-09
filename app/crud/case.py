@@ -1,18 +1,15 @@
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from app.models.case import Case
-from app.models.project import Project
+from app.models.requirement import Requirement
 
 
-def create_case(db: Session, project_id: int, creator_id: int, case_data: Dict[str, Any]):
-    project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
-        raise ValueError("Project not found")
+def create_case(db: Session, requirement_id: int, creator_id: int, case_data: Dict[str, Any]):
+    requirement = db.query(Requirement).filter(Requirement.id == requirement_id).first()
+    if not requirement:
+        raise ValueError(f"Requirement {requirement_id} not found")
 
-    case_data = dict(case_data)
-    case_data["project_name"] = project.name
-
-    tc = Case(project_id=project_id, created_by=creator_id, case_data=case_data)
+    tc = Case(requirement_id=requirement_id, created_by=creator_id, case_data=case_data)
     db.add(tc)
     db.commit()
     db.refresh(tc)
@@ -26,8 +23,8 @@ def get_case(db: Session, case_id: int, include_deleted: bool = False):
     return q.first()
 
 
-def get_cases_for_project(db: Session, project_id: int, include_deleted: bool = False):
-    q = db.query(Case).filter(Case.project_id == project_id)
+def get_cases_for_project(db: Session, requirement_id: int, include_deleted: bool = False):
+    q = db.query(Case).filter(Case.requirement_id == requirement_id)
     if not include_deleted:
         q = q.filter(Case.is_deleted == False)  # type: ignore
     return q.all()

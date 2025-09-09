@@ -13,16 +13,8 @@ class RequirementCreate(RequirementBase):
 
 class RequirementResponse(RequirementBase):
     id: int
+    project_id: int
     is_deleted: bool
-
-    class Config:
-        orm_mode = True
-
-
-class RequirementCaseLinkResponse(BaseModel):
-    requirement_id: int
-    case_id: int
-    linked: bool
 
     class Config:
         orm_mode = True

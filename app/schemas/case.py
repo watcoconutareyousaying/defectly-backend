@@ -36,7 +36,7 @@ class CaseUpdate(BaseModel):
 
 class CaseResponse(BaseModel):
     id: int
-    project_id: int
+    requirement_id: int
     created_by: int
     case_data: Dict[str, Any]
     is_deleted: bool
