@@ -8,7 +8,7 @@ from app.models.user import User
 from app.schemas.plan import PlanCreate, PlanResponse, PlanUpdate
 from app.services import plan_service
 from app.services.activity_log_service import log_activity
-from app.services.export_service import export_project_plans, export_single_plan
+from app.services.plan_export_service import export_project_plans, export_single_plan
 
 router = APIRouter()
 

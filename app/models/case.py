@@ -10,7 +10,7 @@ class Case(Base):
     __tablename__ = "cases"
 
     id = mapped_column(Integer, primary_key=True, index=True)
-    project_id = mapped_column(ForeignKey("projects.id"), nullable=False)
+    requirement_id = mapped_column(ForeignKey("requirements.id"), nullable=False)
     created_by = mapped_column(ForeignKey("users.id"), nullable=False)
 
     case_data = mapped_column(JSON, nullable=False)
@@ -21,10 +21,8 @@ class Case(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    project = relationship("Project", backref="cases")
     creator = relationship("User", backref="cases")
-    requirements = relationship("RequirementCase", back_populates="case")
-
+    requirement = relationship("Requirement", back_populates="cases")
 
     def soft_delete(self):
         self.is_deleted = True
