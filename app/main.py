@@ -21,7 +21,7 @@ app.add_middleware(
 # Include routers
 app.include_router(user.router, prefix="/api/v1", tags=["Authentication"])
 app.include_router(activity_log.router, prefix="/api/v1", tags=["Activity Logs"])
-app.include_router(project.router, prefix="/api/v1/projects", tags=["Projects"])
+app.include_router(project.router, prefix="/api/v1", tags=["Projects"])
 app.include_router(plan.router, prefix="/api/v1", tags=["Test Plans"])
 app.include_router(requirement.router, prefix="/api/v1", tags=["Requirements"])
 app.include_router(case.router, prefix="/api/v1", tags=["Test Case"])

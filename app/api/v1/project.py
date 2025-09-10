@@ -12,7 +12,7 @@ from app.models.user import User
 router = APIRouter()
 
 
-@router.post("/", response_model=ProjectResponse)
+@router.post("/projects", response_model=ProjectResponse)
 def create_project(
     project_data: ProjectCreate,
     request: Request,
@@ -38,7 +38,7 @@ def create_project(
     return project
 
 
-@router.get("/", response_model=List[ProjectResponse])
+@router.get("/projects", response_model=List[ProjectResponse])
 def list_projects(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -58,7 +58,7 @@ def list_projects(
 
     return projects
 
-@router.put("/{project_id}", response_model=ProjectResponse)
+@router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(
     project_id: int,
     updates: ProjectUpdate,
@@ -106,7 +106,7 @@ def update_project(
 
 
 
-@router.delete("/{project_id}", response_model=ProjectResponse)
+@router.delete("/projects/{project_id}", response_model=ProjectResponse)
 def delete_project(
     project_id: int,
     request: Request,
@@ -132,7 +132,7 @@ def delete_project(
     return project
 
 
-@router.delete("/{project_id}/permanent", response_model=dict)
+@router.delete("/projects/{project_id}/permanent", response_model=dict)
 def permanent_delete_project(
     project_id: int,
     request: Request,
