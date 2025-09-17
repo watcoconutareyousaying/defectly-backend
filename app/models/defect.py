@@ -16,7 +16,7 @@ class Defect(Base):
     defect_data = mapped_column(JSON, nullable=False)
 
     is_deleted = mapped_column(Boolean, default=False)
-    deleted_at: Mapped[DateTime] = mapped_column(
+    deleted_at = mapped_column(
         DateTime(timezone=True), nullable=True)
 
     created_at: Mapped[DateTime] = mapped_column(
