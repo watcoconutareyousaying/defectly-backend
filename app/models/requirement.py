@@ -13,7 +13,7 @@ class Requirement(Base):
     description = mapped_column(Text, nullable=False)
 
     is_deleted = mapped_column(Boolean, default=False)
-    deleted_at: Mapped[DateTime] = mapped_column(
+    deleted_at  = mapped_column(
         DateTime(timezone=True), nullable=True)
 
     created_at = mapped_column(

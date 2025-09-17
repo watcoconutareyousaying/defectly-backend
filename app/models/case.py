@@ -10,16 +10,19 @@ class Case(Base):
     __tablename__ = "cases"
 
     id = mapped_column(Integer, primary_key=True, index=True)
-    requirement_id = mapped_column(ForeignKey("requirements.id"), nullable=False)
+    requirement_id = mapped_column(
+        ForeignKey("requirements.id"), nullable=False)
     created_by = mapped_column(ForeignKey("users.id"), nullable=False)
 
     case_data = mapped_column(JSON, nullable=False)
 
     is_deleted = mapped_column(Boolean, default=False)
-    deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at = mapped_column(DateTime(timezone=True), nullable=True)
 
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     creator = relationship("User", backref="cases")
     requirement = relationship("Requirement", back_populates="cases")
