@@ -26,6 +26,7 @@ class Project(Base):
 
     owner = relationship("User", backref="projects")
     requirements = relationship("Requirement", back_populates="project")
+    summary_reports = relationship("SummaryReport", back_populates="project")
 
     def soft_delete(self):
         self.is_deleted = True

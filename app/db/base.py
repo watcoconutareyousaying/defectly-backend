@@ -13,3 +13,4 @@ from app.models.plan import Plan
 from app.models.case import Case
 from app.models.requirement import Requirement
 from app.models.defect import Defect
+from app.models.summary_report import SummaryReport

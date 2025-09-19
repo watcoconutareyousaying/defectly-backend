@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import user, activity_log, project, plan, case, requirement, defect
+from app.api.v1 import user, activity_log, project, plan, case, requirement, defect, summary_report
 from app.db.session import engine
 from app.db.base import Base
 
@@ -26,6 +26,7 @@ app.include_router(plan.router, prefix="/api/v1", tags=["Test Plans"])
 app.include_router(requirement.router, prefix="/api/v1", tags=["Requirements"])
 app.include_router(case.router, prefix="/api/v1", tags=["Test Case"])
 app.include_router(defect.router, prefix="/api/v1", tags=["Defect Report"])
+app.include_router(summary_report.router, prefix="/api/v1", tags=["Summary Report"])
 
 
 @app.get("/")
