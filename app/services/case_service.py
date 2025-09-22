@@ -17,8 +17,9 @@ def create_case(db: Session, requirement_id: int, creator_id: int, payload: dict
             status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-def list_cases_for_project(db: Session, requirement_id: int):
-    return tc_crud.get_cases_for_project(db, requirement_id)
+def list_cases_for_project(db: Session, requirement_id: int, search: str | None = None,
+                           status: str | None = None, limit: int = 100, offset: int = 0):
+    return tc_crud.get_cases_for_project(db, requirement_id, search=search, status=status, limit=limit, offset=offset)
 
 
 def get_case_by_id(db: Session, case_id: int):

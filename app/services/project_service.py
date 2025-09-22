@@ -17,8 +17,13 @@ def create_new_project(db: Session, project_data: ProjectCreate, owner_id: int) 
         )
 
 
-def get_user_projects(db: Session, owner_id: int):
-    return project_crud.get_projects(db, owner_id)
+def get_user_projects(
+        db: Session,
+        owner_id: int,
+        search: str | None = None,
+        limit: int = 100,
+        offset: int = 0):
+    return project_crud.get_projects(db, owner_id, search, limit, offset)
 
 
 def get_project_by_id(db: Session, project_id: int) -> Project:

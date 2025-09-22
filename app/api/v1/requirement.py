@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -42,10 +42,16 @@ def create_requirement_endpoint(
 @router.get("/projects/{project_id}/requirements", response_model=List[RequirementResponse])
 def list_requirements_endpoint(
     project_id: int,
+    search: str | None = Query(None, description="Search Project"),
+    limit: int = Query(100, ge=1, le=1000,
+                       description="Max number of projects to return"),
+    offset: int = Query(0, ge=0, description="Number of projects to skip"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    return requirement_service.list_requirements(db, project_id)
+    req = requirement_service.list_requirements(
+        db, project_id, search, limit, offset)
+    return req
 
 
 @router.delete("/requirements/{requirement_id}", response_model=RequirementResponse)

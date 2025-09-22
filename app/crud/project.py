@@ -1,3 +1,4 @@
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectUpdate
@@ -20,8 +21,17 @@ def get_project(db: Session, project_id: int):
     return db.query(Project).filter((Project.id == project_id) & (Project.is_deleted == False)).first()
 
 
-def get_projects(db: Session, owner_id: int):
-    return db.query(Project).filter((Project.owner_id == owner_id) & (Project.is_deleted == False)).all()
+def get_projects(db: Session, owner_id: int, search: str | None = None, limit: int = 100, offset: int = 0):
+    query = db.query(Project).filter(
+        (Project.owner_id == owner_id) & (Project.is_deleted == False))
+    if search:
+        query = query.filter(
+            or_(
+                func.lower(Project.name).like(f"%{search.lower()}%"),
+                func.lower(Project.description).like(f"%{search.lower()}%")
+            )
+        )
+    return query.offset(offset).limit(limit).all()
 
 
 def update_project(db: Session, project: Project, updates: ProjectUpdate):
