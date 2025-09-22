@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -40,23 +40,18 @@ def create_project(
 
 @router.get("/projects", response_model=List[ProjectResponse])
 def list_projects(
+    search: str | None = Query(None, description="Search Project"),
+    limit: int = Query(100, ge=1, le=1000,
+                       description="Max number of projects to return"),
+    offset: int = Query(0, ge=0, description="Number of projects to skip"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    projects = project_service.get_user_projects(db, current_user.id)
-
-    # Optional: log listing as read access
-    log_activity(
-        db=db,
-        user_id=current_user.id,
-        user_name=current_user.name,
-        activity_type="list_projects",
-        description=f"User '{current_user.email}' (ID: {current_user.id}) retrieved {len(projects)} projects",
-        ip_address="",
-        user_agent=""
-    )
+    projects = project_service.get_user_projects(
+        db, current_user.id, search, limit, offset)
 
     return projects
+
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 def update_project(
@@ -103,7 +98,6 @@ def update_project(
     )
 
     return project
-
 
 
 @router.delete("/projects/{project_id}", response_model=ProjectResponse)

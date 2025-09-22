@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Request, HTTPException, status, Query
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from sqlalchemy.orm import Session
@@ -48,9 +48,17 @@ def create_case_endpoint(
 def list_cases_endpoint(
     requirement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    search: str | None = Query(
+        None, description="Search in title or description"),
+    status: str | None = Query(
+        None, description="Filter by status: Pass, Fail, Not Yet"),
+    limit: int = Query(100, ge=1, le=1000,
+                       description="Number of cases to return"),
+    offset: int = Query(0, ge=0, description="Number of cases to skip")
 ):
-    return case_service.list_cases_for_project(db, requirement_id)
+    return case_service.list_cases_for_project(
+        db, requirement_id, status=status, search=search, limit=limit, offset=offset)
 
 
 @router.get("/cases/{case_id}", response_model=CaseResponse)
@@ -160,7 +168,7 @@ def export_requirement_cases_endpoint(
     current_user: User = Depends(get_current_user)
 ):
     response = case_service.export_cases_for_requirement(db, requirement_id)
-    
+
     # Log activity
     log_activity(
         db=db,

@@ -9,8 +9,14 @@ def create_requirement(db: Session, project_id: int, req_id: str, description: s
     return req_crud.create_requirement(db, project_id, req_id, description)
 
 
-def list_requirements(db: Session, project_id: int):
-    return req_crud.list_requirements(db, project_id)
+def list_requirements(
+    db: Session,
+    project_id: int,
+    search: str | None = None,
+    limit: int = 100,
+    offset: int = 0
+):
+    return req_crud.list_requirements(db, project_id, search, limit, offset)
 
 
 def get_requirement(db: Session, requirement_id: int, include_deleted: bool = False):
