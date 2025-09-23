@@ -16,8 +16,14 @@ def create_defect(db: Session, requirement_id: int, creator_id: int, payload: di
             status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-def list_defects_for_requirement(db: Session, requirement_id: int):
-    return defect_crud.get_defects_for_requirement(db, requirement_id)
+def list_defects_for_requirement(db: Session, requirement_id: int, search: str | None = None,
+                                 status: str | None = None, limit: int = 100, offset: int = 0):
+    return defect_crud.get_defects_for_requirement(db, requirement_id, search=search, status=status, limit=limit, offset=offset)
+
+
+def list_defects_for_project(db: Session, project_id: int, search: str | None = None,
+                             status: str | None = None, limit: int = 100, offset: int = 0):
+    return defect_crud.get_defects_for_project(db, project_id, search=search, status=status, limit=limit, offset=offset)
 
 
 def get_defect_by_id(db: Session, defect_id: int):
@@ -64,7 +70,7 @@ def export_defects_for_requirement(db: Session, requirement_id: int):
         raise HTTPException(status_code=404, detail="Requirement not found")
 
     defects = [d for d in requirement.defects if not d.is_deleted]
-    
+
     requirement_name = requirement.req_id.replace(" ", "_")[:50]
     wb = export_defects_to_excel(requirement_name, defects)
 
@@ -79,12 +85,14 @@ def export_defects_for_requirement(db: Session, requirement_id: int):
             "Content-Disposition": f"attachment; filename={requirement_name}-defects.xlsx"}
     )
 
+
 def export_defects_for_project(db: Session, project_id: int):
     project = project_crud.get_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    requirements = req_crud.list_requirements(db, project_id, include_deleted=False)
+    requirements = req_crud.list_requirements(
+        db, project_id, include_deleted=False)
     wb = export_project_defects_to_excel(requirements)
 
     stream = io.BytesIO()
