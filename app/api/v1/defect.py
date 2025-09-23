@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from sqlalchemy.orm import Session
@@ -46,12 +46,35 @@ def create_defect_endpoint(
 
 
 @router.get("/requirements/{requirement_id}/defects", response_model=List[DefectResponse])
-def list_defects_endpoint(
+def list_defects_requirement(
     requirement_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    search: str | None = Query(
+        None, description="Search in title or description"),
+    status: str | None = Query(
+        None, description="Filter by status: Open, Fixed, In Progress"),
+    limit: int = Query(100, ge=1, le=1000,
+                       description="Number of cases to return"),
+    offset: int = Query(0, ge=0, description="Number of cases to skip")
 ):
-    return defect_service.list_defects_for_requirement(db, requirement_id)
+    return defect_service.list_defects_for_requirement(db, requirement_id, status=status, search=search, limit=limit, offset=offset)
+
+
+@router.get("/project/{project_id}/defects", response_model=List[DefectResponse])
+def list_defects_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    search: str | None = Query(
+        None, description="Search in title or description"),
+    status: str | None = Query(
+        None, description="Filter by status: Open, Fixed, In Progress"),
+    limit: int = Query(100, ge=1, le=1000,
+                       description="Number of cases to return"),
+    offset: int = Query(0, ge=0, description="Number of cases to skip")
+):
+    return defect_service.list_defects_for_project(db, project_id, status=status, search=search, limit=limit, offset=offset)
 
 
 @router.get("/defects/{defect_id}", response_model=DefectResponse)
