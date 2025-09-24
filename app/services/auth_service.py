@@ -26,7 +26,7 @@ async def register_user(db: Session, user_data: UserCreate) -> dict:
 
     # Generate and send OTP
     otp = create_otp(db, user.id)
-    email_sent = send_otp_email(user.email, otp.otp_code)
+    email_sent = await send_otp_email(user.email, otp.otp_code)
 
     if not email_sent:
         raise HTTPException(

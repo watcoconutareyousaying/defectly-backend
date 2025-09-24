@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Dict, Any
 from datetime import datetime
 
@@ -24,5 +24,4 @@ class SummaryReportResponse(SummaryReportBase):
     overall_coverage: float
     is_deleted: bool
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
