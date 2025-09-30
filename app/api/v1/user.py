@@ -6,9 +6,10 @@ from jose import jwt
 from app.db.session import get_db
 from app.core.config import settings
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, ResetPasswordRequest, ForgotPasswordRequest
-from app.schemas.otp import OTPVerify
-from app.services.auth_service import register_user, login_user, forgot_password, reset_password
+from app.schemas.otp import OTPVerify, ResendOTPRequest
+from app.services.auth_service import register_user, login_user, forgot_password, reset_password, resend_otp_email
 from app.services.otp_service import verify_otp, send_welcome_email
+from app.crud.user import get_user_by_email
 from app.services.activity_log_service import log_activity
 from app.api.deps import get_current_user, get_client_ip, get_user_agent, security
 from app.models.user import User
@@ -54,7 +55,6 @@ async def verify_otp_endpoint(
         )
 
     # Get user for logging
-    from app.crud.user import get_user_by_email
     user = get_user_by_email(db, otp_data.email)
 
     if user:
@@ -73,6 +73,24 @@ async def verify_otp_endpoint(
     return {"message": "Account verified successfully"}
 
 
+@router.post("/resend-otp", response_model=dict)
+async def resend_otp(data: ResendOTPRequest, request: Request, db: Session = Depends(get_db)):
+    result = resend_otp_email(db, data.email)
+
+    # Log activity
+    user = get_user_by_email(db, data.email)
+    log_activity(
+        db=db,
+        user_id=user.id if user else None,
+        activity_type="resend_otp",
+        description=f"OTP resent to {user.email}", # type: ignore
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return result
+
+
 @router.post("/login", response_model=Token)
 def login(
     user_data: UserLogin,
@@ -82,7 +100,6 @@ def login(
     token = login_user(db, user_data)
 
     # Get user for logging
-    from app.crud.user import get_user_by_email
     user = get_user_by_email(db, user_data.email)
 
     # Log login activity
