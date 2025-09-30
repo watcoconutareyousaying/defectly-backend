@@ -40,6 +40,20 @@ async def register_user(db: Session, user_data: UserCreate) -> dict:
     }
 
 
+def resend_otp_email(db: Session, email: str):
+    user = user_crud.get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    otp = create_otp(db, user.id)
+    sent = send_otp_email(user.email, otp.otp_code)
+
+    if not sent:
+        raise HTTPException(status_code=500, detail="Failed to send OTP email")
+
+    return {"message": "OTP resent successfully"}
+
+
 def login_user(db: Session, user_data: UserLogin) -> Token:
     user = user_crud.authenticate_user(db, user_data.email, user_data.password)
 
