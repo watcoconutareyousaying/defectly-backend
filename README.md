@@ -29,7 +29,7 @@ A backend system for managing test documentation, including test plans, test cas
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/defectly-backend.git
+git clone https://github.com/pepperthecar/defectly-backend.git
 cd defectly-backend
 ```
 
