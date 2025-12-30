@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import user, activity_log
+from app.api.v1 import user, activity_log, project, plan, case, requirement, defect, summary_report
 from app.db.session import engine
 from app.db.base import Base
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Authentication API", version="1.0.0")
+app = FastAPI(title="Defectly API", version="1.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -19,8 +19,14 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(user.router, prefix="/api/v1", tags=["authentication"])
-app.include_router(activity_log.router, prefix="/api/v1", tags=["activity logs"])
+app.include_router(user.router, prefix="/api/v1", tags=["Authentication"])
+app.include_router(activity_log.router, prefix="/api/v1", tags=["Activity Logs"])
+app.include_router(project.router, prefix="/api/v1", tags=["Projects"])
+app.include_router(plan.router, prefix="/api/v1", tags=["Test Plans"])
+app.include_router(requirement.router, prefix="/api/v1", tags=["Requirements"])
+app.include_router(case.router, prefix="/api/v1", tags=["Test Case"])
+app.include_router(defect.router, prefix="/api/v1", tags=["Defect Report"])
+app.include_router(summary_report.router, prefix="/api/v1", tags=["Summary Report"])
 
 
 @app.get("/")

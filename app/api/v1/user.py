@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from jose import jwt
+
 from app.db.session import get_db
 from app.core.config import settings
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
-from app.schemas.otp import OTPVerify
-from app.services.auth_service import register_user, login_user
-from app.services.otp_service import verify_otp
+from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, ResetPasswordRequest, ForgotPasswordRequest
+from app.schemas.otp import OTPVerify, ResendOTPRequest
+from app.services.auth_service import register_user, login_user, forgot_password, reset_password, resend_otp_email
+from app.services.otp_service import verify_otp, send_welcome_email
+from app.crud.user import get_user_by_email
 from app.services.activity_log_service import log_activity
 from app.api.deps import get_current_user, get_client_ip, get_user_agent, security
 from app.models.user import User
@@ -39,12 +41,12 @@ async def signup(
 
 
 @router.post("/verify-otp", response_model=dict)
-def verify_otp_endpoint(
+async def verify_otp_endpoint(
     otp_data: OTPVerify,
     request: Request,
     db: Session = Depends(get_db)
 ):
-    is_verified = verify_otp(db, otp_data.email, otp_data.otp_code)
+    is_verified = await verify_otp(db, otp_data.email, otp_data.otp_code)
 
     if not is_verified:
         raise HTTPException(
@@ -53,8 +55,10 @@ def verify_otp_endpoint(
         )
 
     # Get user for logging
-    from app.crud.user import get_user_by_email
     user = get_user_by_email(db, otp_data.email)
+
+    if user:
+        await send_welcome_email(user.email, user.name)
 
     # Log OTP verification activity
     log_activity(
@@ -69,6 +73,24 @@ def verify_otp_endpoint(
     return {"message": "Account verified successfully"}
 
 
+@router.post("/resend-otp", response_model=dict)
+async def resend_otp(data: ResendOTPRequest, request: Request, db: Session = Depends(get_db)):
+    result = resend_otp_email(db, data.email)
+
+    # Log activity
+    user = get_user_by_email(db, data.email)
+    log_activity(
+        db=db,
+        user_id=user.id if user else None,
+        activity_type="resend_otp",
+        description=f"OTP resent to {user.email}", # type: ignore
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return result
+
+
 @router.post("/login", response_model=Token)
 def login(
     user_data: UserLogin,
@@ -78,7 +100,6 @@ def login(
     token = login_user(db, user_data)
 
     # Get user for logging
-    from app.crud.user import get_user_by_email
     user = get_user_by_email(db, user_data.email)
 
     # Log login activity
@@ -131,3 +152,39 @@ def logout(
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/forgot-password", response_model=dict)
+async def forgot_password_endpoint(
+    data: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    result = await forgot_password(db, data)
+    log_activity(
+        db=db,
+        user_id=None,
+        activity_type="forgot_password",
+        description=f"Password reset requested for {data.email}",
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    return result
+
+
+@router.post("/reset-password", response_model=dict)
+async def reset_password_endpoint(
+    data: ResetPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    result = await reset_password(db, data)
+    log_activity(
+        db=db,
+        user_id=None,
+        activity_type="reset_password",
+        description=f"Password reset for {data.email}",
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+    return result
